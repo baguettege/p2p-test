@@ -23,8 +23,6 @@ public class Console {
 
         input.addActionListener(e -> handleInput(input));
 
-        log("Console startup - " + name + " | cmd for command list");
-
         if (name.equals("Main")) isMainConsole = true;
 
         inputHandler = new InputHandler(this);

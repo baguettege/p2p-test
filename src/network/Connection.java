@@ -24,6 +24,7 @@ public class Connection implements Runnable {
 
     private final int AUTH_TIMEOUT_MILLIS = 30000;
     private final int VERIFY_TIMEOUT_MILLIS = 5000;
+    private final int KEEP_ALIVE_COOLDOWN = 10000;
 
     public Connection(Socket socket) {
         this.socket = socket;
@@ -124,6 +125,23 @@ public class Connection implements Runnable {
         logConsole("Successfully authenticated connection!");
         authenticated = true;
         writePacket(new Auth("Success!"));
+
+        // add any post authentication code below
+
+        writeKeepAlivePackets();
+    }
+
+    public void writeKeepAlivePackets() {
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(KEEP_ALIVE_COOLDOWN);
+                    writePacket(new KeepAlive());
+                } catch (InterruptedException e) {
+                    logConsole("Error when writing keep alive packets: " + e.getMessage());
+                }
+            }
+        }).start();
     }
 
     public boolean isAuthenticated() { return authenticated;}

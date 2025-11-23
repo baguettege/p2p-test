@@ -2,6 +2,8 @@ package gui;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
+import java.nio.file.Path;
 
 public class Window {
     private static JTabbedPane tabs;
@@ -50,5 +52,19 @@ public class Window {
         if (index != -1) {
             tabs.remove(index);
         }
+    }
+
+    public Path chooseFile() {
+        JFileChooser chooser = new JFileChooser();
+        int result = chooser.showOpenDialog(null);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = chooser.getSelectedFile();
+            if (selectedFile != null) {
+                return selectedFile.toPath();
+            }
+        }
+
+        return null;
     }
 }

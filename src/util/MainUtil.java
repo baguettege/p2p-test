@@ -1,11 +1,14 @@
 package util;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 public class MainUtil {
     public static void log(String logText) {
-        System.out.println(getLocalTime() + " | " + logText);
+        String log = getLocalTime() + " | " + logText;
+        System.out.println(log);
+        FileUtil.writeLog(log);
     }
 
     private static final DateTimeFormatter localTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
@@ -13,6 +16,10 @@ public class MainUtil {
         return LocalTime.now().format(localTimeFormatter);
     }
 
+    private static final DateTimeFormatter localDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+    public static String getLocalDateTime() {
+        return LocalDateTime.now().format(localDateTimeFormatter);
+    }
 
     // check if a given ip:port or port is within the format 1.1.1.1:1 or port > 0 & < 65536
     public static boolean isIpPort(String s) {

@@ -2,6 +2,9 @@ package main;
 
 import network.Connection;
 import network.packets.*;
+import util.FileUtil;
+
+import java.io.IOException;
 
 public class PacketHandler {
     private final Connection connection;
@@ -20,10 +23,13 @@ public class PacketHandler {
         if (!connection.isAuthenticated() && connection.isVerified()) return; // ignore packets if not authenticated yet
 
         switch (id) {
+            case "Ping" -> ping((Ping) packet);
             case "Message" -> message((Message) packet);
             case "Verify" -> verify();
             case "Disconnect" -> disconnect((Disconnect) packet);
             case "Auth" -> auth((Auth) packet);
+            case "KeepAlive" -> keepAlive();
+            case "Data" -> data((Data) packet);
             default -> unknownPacket(packet);
         }
     }
@@ -46,5 +52,31 @@ public class PacketHandler {
 
     private void auth(Auth packet) {
         connection.logConsole("Authentication result: " + packet.getStatus());
+    }
+
+    private void ping(Ping packet) {
+        if (packet.isReturning()) { // was sent by self
+            long timeTaken = System.currentTimeMillis() - packet.getTimestamp();
+            connection.logConsole("Ping echoed successfully in " + timeTaken + "ms");
+
+        } else { // was sent by peer, so echo back
+            packet.setReturning();
+            connection.writePacket(packet);
+        }
+    }
+
+    private void keepAlive() {
+        // do nothing, purely so socket does not close on its own
+    }
+
+    private void data(Data packet) {
+        connection.logConsole("Received file: " + packet.getFileName() + " | " + FileUtil.getFileSize(packet.getLength()));
+
+        try {
+            packet.saveTo(FileUtil.getDownloadsDir());
+        } catch (IOException e) {
+            e.printStackTrace();
+            connection.logConsole("Error whilst saving file: " + e.getMessage());
+        }
     }
 }

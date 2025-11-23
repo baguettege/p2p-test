@@ -2,6 +2,7 @@ package main;
 
 import gui.Window;
 import network.Connection;
+import util.FileUtil;
 import util.MainUtil;
 
 import java.io.IOException;
@@ -13,6 +14,8 @@ public class Main {
 
     static void main(String[] args) {
         window = new Window();
+        FileUtil.initFiles();
+        logMainConsole("Console startup | cmd for command list");
     }
 
     public static void logMainConsole(String logText) {

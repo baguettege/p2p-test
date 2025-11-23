@@ -3,8 +3,11 @@ package main;
 import gui.Console;
 import network.Connection;
 import network.packets.*;
+import util.FileUtil;
 import util.MainUtil;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 public class InputHandler {
@@ -106,18 +109,28 @@ public class InputHandler {
         if (args.length == 0 ) return;
 
         switch (args[0]) {
-            case "cmd" -> connCmd();
+            case "ping" -> connPing(args);
+            case "cmd" -> connCmd(args);
             case "msg" -> connMessage(args);
-            case "auth" -> connAuth();
-            case "exit" -> connExit();
+            case "auth" -> connAuth(args);
+            case "exit" -> connExit(args);
+            case "send" -> connSend(args);
             default -> onUnknownCommand(input);
         }
     }
 
-    private void connCmd() {
+    private void connCmd(String[] args) {
+        if (args.length != 1) {
+            onInvalidCommand();
+            return;
+        }
+
         console.log("CMDs:");
+        console.log("cmd - command list");
         console.log("msg [text] - send message to peer");
         console.log("auth - authenticate inbound connection");
+        console.log("ping - ping peer");
+        console.log("send - send file to peer");
         console.log("exit - end connection with peer");
     }
 
@@ -132,11 +145,51 @@ public class InputHandler {
         console.log("MSG (You) - " + text);
     }
 
-    private void connAuth() {
+    private void connAuth(String[] args) {
+        if (args.length != 1) {
+            onInvalidCommand();
+            return;
+        }
+
         connection.authenticate();
     }
 
-    private void connExit() {
+    private void connExit(String[] args) {
+        if (args.length != 1) {
+            onInvalidCommand();
+            return;
+        }
+
         connection.close("Connection forcibly closed");
+    }
+
+    private void connPing(String[] args) {
+        if (args.length != 1) {
+            onInvalidCommand();
+            return;
+        }
+
+        connection.logConsole("Pinging peer...");
+        connection.writePacket(new Ping());
+    }
+
+    private void connSend(String[] args) {
+        Path selectedFile = Main.window().chooseFile();
+        if (selectedFile == null) {
+            connection.logConsole("File send cancelled");
+            return;
+        }
+
+        try {
+            Data filePacket = new Data(selectedFile);
+            String size = FileUtil.getFileSize(filePacket.getLength());
+            connection.logConsole("Attempting to send file: " + selectedFile + " | " + size);
+            connection.writePacket(filePacket);
+            connection.logConsole("Successfully sent file: " + selectedFile + " | " + size);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            connection.logConsole("Error when attempting to send file: " + e.getMessage());
+        }
     }
 }
