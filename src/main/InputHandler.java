@@ -180,16 +180,6 @@ public class InputHandler {
             return;
         }
 
-        try {
-            Data filePacket = new Data(selectedFile);
-            String size = FileUtil.getFileSize(filePacket.getLength());
-            connection.logConsole("Attempting to send file: " + selectedFile + " | " + size);
-            connection.writePacket(filePacket);
-            connection.logConsole("Successfully sent file: " + selectedFile + " | " + size);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            connection.logConsole("Error when attempting to send file: " + e.getMessage());
-        }
+        connection.writeFile(selectedFile);
     }
 }

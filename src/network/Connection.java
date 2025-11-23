@@ -4,11 +4,13 @@ import gui.Console;
 import main.Main;
 import main.PacketHandler;
 import network.packets.*;
+import util.FileUtil;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
 
 public class Connection implements Runnable {
     private final Socket socket;
@@ -162,6 +164,53 @@ public class Connection implements Runnable {
         } catch (IOException e) {
             logConsole("Error when writing packet: " + e.getMessage());
         }
+    }
+
+    public synchronized void writeFile(Path path) {
+        logConsole("Attempting to send file: " + path);
+
+        new Thread(() -> { // new thread so swing doesnt freeze
+            try {
+                long bytesSent = 0;
+                long fileSize = Files.size(path);
+                int lastPercent = -1;
+
+                writePacket(new DataStart(path));
+
+                InputStream input = Files.newInputStream(path);
+
+                byte[] buffer = new byte[65536]; //64KB
+                int index = 0;
+                int read;
+
+                // read then send chunks of bytes from the file
+                while ((read = input.read(buffer)) != -1) { // while file hasnt ended
+                    byte[] chunk = Arrays.copyOf(buffer, read);
+                    writePacket(new DataBytes(index, chunk));
+                    index++;
+
+                    // progress tracking
+                    bytesSent += read;
+
+                    String received = FileUtil.getFileSize(bytesSent);
+                    String total = FileUtil.getFileSize(fileSize);
+                    double percent = ((double) bytesSent /fileSize) * 100.0;
+                    int wholePercent = (int) percent;
+
+                    if (wholePercent % 10 == 0 && wholePercent != lastPercent) {
+                        logConsole("File send progress: " + received + "/" + total + " - " + wholePercent + "%");
+                        lastPercent = wholePercent;
+                    };
+                }
+
+                writePacket(new DataEnd());
+
+                logConsole("Successfully sent file: " + path);
+
+            } catch (IOException e) {
+                logConsole("Error when writing file: " + e.getMessage());
+            }
+        }).start();
     }
 
     // disconnect the peer without logging

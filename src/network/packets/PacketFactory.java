@@ -12,7 +12,9 @@ public class PacketFactory {
             case "Disconnect" -> new Disconnect();
             case "Auth" -> new Auth();
             case "KeepAlive" -> new KeepAlive();
-            case "Data" -> new Data();
+            case "DataBytes" -> new DataBytes();
+            case "DataStart" -> new DataStart();
+            case "DataEnd" -> new DataEnd();
             default -> null;
         };
     }

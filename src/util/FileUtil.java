@@ -71,7 +71,7 @@ public class FileUtil {
             unit = "GiB";
         }
 
-        return String.format("%.1f %s", value, unit);
+        return String.format("%.3g %s", value, unit); // 3sf
     }
 
     public static String getFileNameWithTime(String fileName) {
