@@ -13,6 +13,8 @@ public class MainUtil {
         return LocalTime.now().format(localTimeFormatter);
     }
 
+
+    // check if a given ip:port or port is within the format 1.1.1.1:1 or port > 0 & < 65536
     public static boolean isIpPort(String s) {
         return s.matches(
                 "^((localhost)|((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}"

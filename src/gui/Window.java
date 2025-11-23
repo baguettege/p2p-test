@@ -7,10 +7,12 @@ public class Window {
     private static JTabbedPane tabs;
     private static Console mainConsole;
 
+    // simple gui that holds each console for every peer/main console
+
     public Window() {
         JFrame frame = new JFrame("p2p-test");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(500, 600);
+        frame.setSize(700, 600);
 
         tabs = new JTabbedPane();
 

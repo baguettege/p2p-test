@@ -13,6 +13,9 @@ public class Console {
     private final InputHandler inputHandler;
     private final String name;
 
+    // a tab in the main window which holds a console, inputs, for main console OR for connected peers
+    // do NOT create via the constructor, use Window.createConsole();
+
     public Console(Window window, JTextArea console, JTextField input, String name) {
         this.window = window;
         this.console = console;
@@ -31,8 +34,10 @@ public class Console {
 
     public void log(String logText) {
         console.append(MainUtil.getLocalTime() + " | " + logText + "\n");
+        MainUtil.log(logText);
     }
 
+    // from text field
     private void handleInput(JTextField input) {
         String text = input.getText();
         if (text.isBlank()) return;

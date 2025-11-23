@@ -5,9 +5,14 @@ import network.Connection;
 import network.packets.*;
 import util.MainUtil;
 
+import java.util.Arrays;
+
 public class InputHandler {
     private final Console console;
     private Connection connection;
+
+    // handles all commands inputted into console
+    // split into main console and connection console which take different commands
 
     public InputHandler(Console console) {
         this.console = console;
@@ -16,13 +21,14 @@ public class InputHandler {
     public void setConnection(Connection conn) { connection = conn; }
 
     private void onInvalidCommand() {
-        console.log("Invalid arguments; cmd fail");
+        console.log("Invalid arguments for command");
     }
 
     private void onUnknownCommand(String input) {
         console.log("Unknown or invalid command: " + input);
     }
 
+    // main commands
     // --------------------------------------------------------------------------------------
 
     public void handleMainInput(String input) {
@@ -32,13 +38,20 @@ public class InputHandler {
         switch (args[0]) {
             case "cmd" -> mainCmd();
             case "connect" -> mainConnect(args);
-            case "setport" -> mainPort(args);
+            case "openport" -> mainPort(args);
+            case "closeport" -> mainClosePort();
+            case "exit" -> mainExit();
             default -> onUnknownCommand(input);
         }
     }
 
     private void mainCmd() {
-        console.log("CMDs - cmd, connect, setport");
+        console.log("CMDs:");
+        console.log("cmd - command list");
+        console.log("connect [ip:port] - connect to a peer");
+        console.log("openport [port] - listen for inbound connections");
+        console.log("closeport - end listening for inbound connections");
+        console.log("exit - end the program");
     }
 
     private void mainConnect(String[] args) {
@@ -49,7 +62,7 @@ public class InputHandler {
 
         String ipPort = args[1];
         if (!MainUtil.isIpPort(ipPort)) {
-            console.log("Invalid IP; failed to connect");
+            console.log("Invalid IP; cannot connect");
             return;
         }
 
@@ -74,9 +87,18 @@ public class InputHandler {
             return;
         }
 
-        Main.waitForConnections(port);
+        Main.acceptInbound(port);
     }
 
+    private void mainClosePort() {
+        Main.endInbound();
+    }
+
+    private void mainExit() {
+        System.exit(0);
+    }
+
+    // connection commands
     // --------------------------------------------------------------------------------------
 
     public void handleConnectionInput(String input) {
@@ -86,28 +108,35 @@ public class InputHandler {
         switch (args[0]) {
             case "cmd" -> connCmd();
             case "msg" -> connMessage(args);
+            case "auth" -> connAuth();
+            case "exit" -> connExit();
             default -> onUnknownCommand(input);
         }
     }
 
     private void connCmd() {
-        console.log("CMDs - cmd, msg");
+        console.log("CMDs:");
+        console.log("msg [text] - send message to peer");
+        console.log("auth - authenticate inbound connection");
+        console.log("exit - end connection with peer");
     }
 
     private void connMessage(String[] args) {
-        if (args.length != 2) {
+        if (args.length < 2) {
             onInvalidCommand();
             return;
         }
 
-        String text = args[1];
-
-        if (connection != null) {
-            connection.writePacket(new Message(text));
-        } else {
-            console.log("Connection was null? This error should not be possible.");
-        }
-
+        String text = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+        connection.writePacket(new Message(text));
         console.log("MSG (You) - " + text);
+    }
+
+    private void connAuth() {
+        connection.authenticate();
+    }
+
+    private void connExit() {
+        connection.close("Connection forcibly closed");
     }
 }
