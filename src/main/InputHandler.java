@@ -7,6 +7,7 @@ import util.FileUtil;
 import util.MainUtil;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 
@@ -115,6 +116,8 @@ public class InputHandler {
             case "auth" -> connAuth(args);
             case "exit" -> connExit(args);
             case "send" -> connSend(args);
+            case "accept" -> connAccept();
+            case "decline" -> connDecline();
             default -> onUnknownCommand(input);
         }
     }
@@ -131,6 +134,8 @@ public class InputHandler {
         console.log("auth - authenticate inbound connection");
         console.log("ping - ping peer");
         console.log("send - send file to peer");
+        console.log("accept - allow peer to send file");
+        console.log("decline - decline peer sending file");
         console.log("exit - end connection with peer");
     }
 
@@ -180,6 +185,29 @@ public class InputHandler {
             return;
         }
 
-        connection.writeFile(selectedFile);
+        try {
+            connection.logConsole("Sending file transfer request to peer: " + selectedFile.getFileName() + " | " + FileUtil.getFileSize(Files.size(selectedFile)));
+            connection.writePacket(new DataRequest(selectedFile));
+            connection.setWritingFile(selectedFile);
+        } catch (IOException e) {
+            connection.logConsole("Error when sending DataRequest packet: " + e.getMessage());
+        }
+    }
+
+    private void connAccept() {
+        if (connection.hasReceivedDataRequest()) {
+            connection.logConsole("Accepted file transfer from peer");
+            connection.allowFileReceive();
+            connection.writePacket(new DataResponse(true));
+            connection.stopHasReceivedDataRequest();
+        }
+    }
+
+    private void connDecline() {
+        if (connection.hasReceivedDataRequest()) {
+            connection.logConsole("Declined file transfer from peer");
+            connection.writePacket(new DataResponse(false));
+            connection.stopHasReceivedDataRequest();
+        }
     }
 }

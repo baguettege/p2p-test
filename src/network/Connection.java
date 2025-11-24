@@ -16,6 +16,8 @@ public class Connection implements Runnable {
     private final Socket socket;
     private Console console;
 
+    private PacketHandler packetHandler;
+
     private final String ip;
     private boolean verified;
     private boolean authenticated;
@@ -58,7 +60,7 @@ public class Connection implements Runnable {
     // otherwise terminate the connection
     @Override
     public void run() {
-        PacketHandler packetHandler = new PacketHandler(this);
+        packetHandler = new PacketHandler(this);
 
         new Thread(() -> {
             try {
@@ -166,18 +168,39 @@ public class Connection implements Runnable {
         }
     }
 
-    public synchronized void writeFile(Path path) {
-        logConsole("Attempting to send file: " + path);
+    private Path writingFile;
+    private boolean currentlyWritingFile = false;
+
+    public boolean isWritingFile() { return writingFile != null; }
+    public void setWritingFile(Path writingFile) { this.writingFile = writingFile;}
+    public void stopWritingFile() {
+        writingFile = null;
+        currentlyWritingFile = false;
+    }
+
+    public void allowFileReceive() {
+        packetHandler.allowFileReceive();
+    }
+
+    public boolean hasReceivedDataRequest() { return packetHandler.hasReceivedDataRequest(); }
+    public void stopHasReceivedDataRequest() { packetHandler.stopHasReceivedDataRequest(); }
+
+    public synchronized void writeFile() {
+        if (currentlyWritingFile) {
+            logConsole("You cannot send a file while already sending one!");
+            return;
+        }
+        currentlyWritingFile = true;
 
         new Thread(() -> { // new thread so swing doesnt freeze
             try {
+                writePacket(new DataStart(writingFile));
+
                 long bytesSent = 0;
-                long fileSize = Files.size(path);
+                long fileSize = Files.size(writingFile);
                 int lastPercent = -1;
 
-                writePacket(new DataStart(path));
-
-                InputStream input = Files.newInputStream(path);
+                InputStream input = Files.newInputStream(writingFile);
 
                 byte[] buffer = new byte[65536]; //64KB
                 int index = 0;
@@ -205,12 +228,12 @@ public class Connection implements Runnable {
 
                 writePacket(new DataEnd());
 
-                logConsole("Successfully sent file: " + path);
+                logConsole("Successfully sent file: " + writingFile);
+                stopWritingFile();
 
             } catch (IOException e) {
                 logConsole("Error when writing file: " + e.getMessage());
-            }
-        }).start();
+            }}).start();
     }
 
     // disconnect the peer without logging

@@ -35,6 +35,8 @@ public class PacketHandler {
             case "DataBytes" -> dataBytes((DataBytes) packet);
             case "DataStart" -> dataStart((DataStart) packet);
             case "DataEnd" -> dataEnd((DataEnd) packet);
+            case "DataResponse" -> dataResponse((DataResponse) packet);
+            case "DataRequest" -> dataRequest((DataRequest) packet);
             default -> unknownPacket(packet);
         }
     }
@@ -82,16 +84,31 @@ public class PacketHandler {
     private String fileName;
     private long fileSize;
     private long bytesReceived;
-    private int chunkSize;
     private int expectedIndex;
 
     private String fmtName;
     private int lastPercent = -1;
 
+    private boolean allowFileReceive = false;
+    private boolean isReceivingFile = false;
+
+    public void allowFileReceive() {
+        allowFileReceive = true;
+    }
+
     private void dataStart(DataStart packet) {
+        if (!allowFileReceive) {
+            connection.logConsole("Received DataStart packet while allowing data to be received!");
+            return;
+        }
+        if (isReceivingFile) {
+            connection.logConsole("Cannot receive multiple files at once");
+            return;
+        }
+        isReceivingFile = true;
+
         this.fileName = packet.getFileName();
         this.fileSize = packet.getFileSize();
-        this.chunkSize = packet.getChunkSize();
         this.bytesReceived = 0;
         this.expectedIndex = 0;
 
@@ -108,6 +125,11 @@ public class PacketHandler {
     }
 
     private void dataBytes(DataBytes packet) {
+        if (!allowFileReceive) {
+            connection.logConsole("Received DataBytes packet while allowing data to be received!");
+            return;
+        }
+
         int index = packet.getIndex();
 
         if (index != expectedIndex) {
@@ -140,6 +162,11 @@ public class PacketHandler {
     }
 
     private void dataEnd(DataEnd packet) {
+        if (!allowFileReceive) {
+            connection.logConsole("Received DataEnd packet while allowing data to be received!");
+            return;
+        }
+
         try {
             if (output != null) {
                 output.close();
@@ -161,5 +188,39 @@ public class PacketHandler {
         bytesReceived = 0;
         expectedIndex = 0;
         lastPercent = -1;
+        allowFileReceive = false;
+        isReceivingFile = false;
+    }
+
+    private void dataResponse(DataResponse packet) {
+        boolean isAccepting = packet.getResponse();
+        boolean isWritingFile = connection.isWritingFile();
+
+        if (isAccepting && isWritingFile) {
+            connection.logConsole("Peer accepted file send request, sending...");
+            connection.writeFile();
+        } else if (!isAccepting && isWritingFile) {
+            connection.logConsole("Peer declined file send request");
+            connection.stopWritingFile();
+        } else {
+            // peer sent a DataResponse packet when self did not request to send file; ignore this
+        }
+    }
+
+    private boolean hasReceivedDataRequest = false;
+
+    public boolean hasReceivedDataRequest() { return hasReceivedDataRequest; }
+    public void stopHasReceivedDataRequest() { hasReceivedDataRequest = false; }
+
+    private void dataRequest(DataRequest packet) {
+        if (isReceivingFile) {
+            connection.logConsole("Peer requested file transfer while already receiving a file; declining");
+            connection.writePacket(new DataResponse(false));
+            return;
+        }
+
+        hasReceivedDataRequest = true;
+        connection.logConsole("Peer requested file transfer: " + packet.getFileName() + " | " + FileUtil.getFileSize(packet.getFileSize()));
+        connection.logConsole("cmd 'accept' or 'decline' for this request");
     }
 }

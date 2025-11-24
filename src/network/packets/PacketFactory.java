@@ -15,6 +15,8 @@ public class PacketFactory {
             case "DataBytes" -> new DataBytes();
             case "DataStart" -> new DataStart();
             case "DataEnd" -> new DataEnd();
+            case "DataResponse" -> new DataResponse();
+            case "DataRequest" -> new DataRequest();
             default -> null;
         };
     }
