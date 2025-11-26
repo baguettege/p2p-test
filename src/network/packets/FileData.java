@@ -4,14 +4,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class DataBytes implements Packet {
+public class FileData implements Packet {
     private int index;
     private int length;
     private byte[] data;
 
-    public DataBytes() {}
+    public FileData() {}
 
-    public DataBytes(int index, byte[] data) throws IOException {
+    public FileData(int index, byte[] data) throws IOException {
         this.index = index;
         this.length = data.length;
         this.data = data;
@@ -34,7 +34,7 @@ public class DataBytes implements Packet {
 
     @Override
     public String getId() {
-        return "DataBytes";
+        return "FileData";
     }
 
     public int getIndex() { return index; }

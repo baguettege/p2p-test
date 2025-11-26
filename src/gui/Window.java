@@ -1,13 +1,24 @@
 package gui;
 
+import network.Peer;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Window {
     private static JTabbedPane tabs;
     private static Console mainConsole;
+    private static Map<Console, Integer> activeConsoles = new HashMap<>(); // <Console, tabIndex> -> used for removing consoles later
+
+    private static final Color bg = new Color(0x1E1E1E);   // background
+    private static final Color fg = new Color(0xCFCFCF);   // text
+
+    private static final Color inputBg = new Color(0x252525);
+    private static final Color inputFg = new Color(0xCFCFCF);
 
     // simple gui that holds each console for every peer/main console
 
@@ -15,43 +26,77 @@ public class Window {
         JFrame frame = new JFrame("p2p-test");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(700, 600);
+        frame.getContentPane().setBackground(Color.DARK_GRAY);
 
         tabs = new JTabbedPane();
-
-        mainConsole = createConsole("Main");
+        tabs.setBackground(Color.DARK_GRAY);
 
         frame.add(tabs);
         frame.setVisible(true);
     }
 
-    public void logMainConsole(String logText) {
+    public void createMainConsole() {
+        try { // run on EDT, wont be null when trying to log
+            SwingUtilities.invokeAndWait(() -> mainConsole = createConsole("Main"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void logMain(String logText) {
         mainConsole.log(logText);
     }
 
-    public Console createConsole(String name) {
+    private Console buildConsole(String name, Peer peer) {
+        if (peer == null && mainConsole != null) return null;
+
         JPanel panel = new JPanel(new BorderLayout());
 
         JTextArea console = new JTextArea();
         console.setEditable(false);
         console.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        console.setForeground(fg);
+        console.setBackground(bg);
+        console.setBorder(BorderFactory.createLineBorder(new Color(0x3A3A3A)));
 
         JScrollPane scroll = new JScrollPane(console);
 
         JTextField input = new JTextField();
+        input.setForeground(inputFg);
+        input.setBackground(inputBg);
+        input.setBorder(BorderFactory.createLineBorder(new Color(0x3A3A3A)));
 
         panel.add(scroll, BorderLayout.CENTER);
         panel.add(input, BorderLayout.SOUTH);
 
         tabs.add(name, panel);
 
-        return new Console(this, console, input, name);
+        Console newConsole;
+
+        if (peer != null) {
+            newConsole = new Console(this, console, input, name, peer);
+        } else {
+            newConsole = new Console(this, console, input, name, null);
+            mainConsole = newConsole;
+        }
+
+        int index = tabs.indexOfComponent(panel);
+        activeConsoles.put(newConsole, index);
+
+        return newConsole;
     }
 
-    public void removeConsole(String name) {
-        int index = tabs.indexOfTab(name);
-        if (index != -1) {
-            tabs.remove(index);
-        }
+    // MUST be called with SwingUtilities.invokeAndWait(() -> window.createConsole(peerName));
+    public Console createConsole(String name) {
+        return buildConsole(name, null);
+    }
+
+    public Console createConsole(String name, Peer peer) {
+        return buildConsole(name, peer);
+    }
+
+    public void removeConsole(Console console) {
+        tabs.remove(activeConsoles.get(console));
     }
 
     public Path chooseFile() {

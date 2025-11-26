@@ -1,7 +1,7 @@
 package main;
 
 import gui.Window;
-import network.Connection;
+import network.Peer;
 import util.FileUtil;
 import util.MainUtil;
 
@@ -12,14 +12,14 @@ import java.net.Socket;
 public class Main {
     private static Window window;
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         window = new Window();
+        window.createMainConsole();
         FileUtil.initFiles();
-        logMainConsole("Console startup | cmd for command list");
     }
 
-    public static void logMainConsole(String logText) {
-        window.logMainConsole(logText);
+    public static void logMain(String logText) {
+        window.logMain(logText);
     }
 
     private static boolean isWaiting = false;
@@ -41,18 +41,18 @@ public class Main {
 
             try {
                 serverSocket = new ServerSocket(port);
-                window.logMainConsole("Waiting for inbound connections on port " + port + "...");
+                logMain("Waiting for inbound connections on port " + port + "...");
 
                 while (true) {
                     Socket newSocket = serverSocket.accept();
                     newSocket.setKeepAlive(true);
 
                     String ip = newSocket.getInetAddress().getHostAddress();
-                    window.logMainConsole("Connection received: " + ip);
+                    logMain("Connection received: " + ip);
 
-                    Connection connection = new Connection(newSocket);
+                    Peer peer = new Peer(newSocket);
 
-                    new Thread(connection).start();
+                    new Thread(peer).start();
                 }
 
             } catch (IOException e) {
@@ -82,7 +82,7 @@ public class Main {
             serverThread.interrupt();
         }
 
-        window.logMainConsole("Stopped waiting for inbound connections.");
+        logMain("Stopped waiting for inbound connections.");
     }
 
     // attempts to connect to another peer which has an open port
@@ -90,10 +90,10 @@ public class Main {
     // waits for Auth packet from peer for 2 way auth
     public static void connect(String ipPort) {
         if (!MainUtil.isIpPort(ipPort)) {
-            window.logMainConsole("Invalid IP; failed to connect");
+            logMain("Invalid IP; failed to connect");
             return;
         }
-        window.logMainConsole("Attempting to connect to " + ipPort);
+        logMain("Attempting to connect to " + ipPort);
 
         String[] split = ipPort.split(":");
         String ip = split[0];
@@ -103,14 +103,14 @@ public class Main {
             try {
                 Socket newSocket = new Socket(ip, port);
                 newSocket.setKeepAlive(true);
-                Connection connection = new Connection(newSocket, port);
-                new Thread(connection).start();
+                Peer peer = new Peer(newSocket, port);
+                new Thread(peer).start();
 
-                window.logMainConsole("Connection to " + ipPort + " was successful!");
+                logMain("Connection to " + ipPort + " was successful!");
 
             } catch (IOException e) {
                 String msg = e.getMessage();
-                window.logMainConsole(msg);
+                logMain(msg);
             }
 
         }).start();

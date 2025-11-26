@@ -6,14 +6,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class DataStart implements Packet {
+public class FileHeader implements Packet {
     private String fileName;
     private long fileSize;
     private int chunkSize;
 
-    public DataStart() {}
+    public FileHeader() {}
 
-    public DataStart(Path path) throws IOException {
+    public FileHeader(Path path) throws IOException {
         this.fileName = path.getFileName().toString();
         this.fileSize = Files.size(path);
         this.chunkSize = 65536; //64KB
@@ -35,7 +35,7 @@ public class DataStart implements Packet {
 
     @Override
     public String getId() {
-        return "DataStart";
+        return "FileHeader";
     }
 
     public String getFileName() { return fileName; }

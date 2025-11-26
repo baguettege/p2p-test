@@ -8,15 +8,16 @@ public class PacketFactory {
         return switch (id) {
             case "Ping" -> new Ping();
             case "Message" -> new Message();
-            case "Verify" -> new Verify();
-            case "Disconnect" -> new Disconnect();
+            case "Accept" -> new Accept();
             case "Auth" -> new Auth();
             case "KeepAlive" -> new KeepAlive();
-            case "DataBytes" -> new DataBytes();
-            case "DataStart" -> new DataStart();
-            case "DataEnd" -> new DataEnd();
-            case "DataResponse" -> new DataResponse();
-            case "DataRequest" -> new DataRequest();
+            case "FileData" -> new FileData();
+            case "FileHeader" -> new FileHeader();
+            case "FileFooter" -> new FileFooter();
+            case "FileResponse" -> new FileResponse();
+            case "FileRequest" -> new FileRequest();
+            case "FileCancelUpload" -> new FileCancelUpload();
+            case "FileCancelDownload" -> new FileCancelDownload();
             default -> null;
         };
     }

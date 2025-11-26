@@ -19,28 +19,24 @@ public class FileUtil {
         try {
             Files.createDirectories(mainDir);
 
-            Path logDir = mainDir.resolve("logs");
-            Files.createDirectories(logDir);
-
             downloadsDir = mainDir.resolve("downloads");
             Files.createDirectories(downloadsDir);
 
-            logFile = logDir.resolve(MainUtil.getLocalDateTime() + ".log");
+            logFile = mainDir.resolve("latest.log");
+            if (Files.exists(logFile)) Files.delete(logFile); // prevent spam log creation
             Files.createFile(logFile);
 
             isFilesInitialized = true;
-            Main.logMainConsole("Files successfully initialized: " + mainDir);
-            Main.logMainConsole("Session log file: " + logFile);
-            Main.logMainConsole("Session downloads file: " + downloadsDir);
+            Main.logMain("Files successfully initialized: " + mainDir);
 
         } catch (IOException e) {
-            Main.logMainConsole("Error when initializing files: " + e.getMessage());
+            Main.logMain("Error when initializing files: " + e.getMessage());
         }
     }
 
     public static void writeLog(String logText) {
         if (!isFilesInitialized) {
-            System.out.println("Attempted to write to log file but files were not initialized!");
+            System.out.println("Attempted to write to log file but files were not initialized: " + logText);
             return;
         }
 
@@ -48,7 +44,7 @@ public class FileUtil {
             writer.write(logText + "\n");
 
         } catch (IOException e) {
-            Main.logMainConsole("Error when writing to log: " + e.getMessage());
+            Main.logMain("Error when writing to log: " + e.getMessage());
         }
     }
 
@@ -56,22 +52,31 @@ public class FileUtil {
 
     public static String getFileSize(long size) {
         double value = size;
-        String unit = "B";
+        String[] units = {"B", "KiB", "MiB", "GiB", "TiB", "PiB"};
 
-        if (size < 1024) {
-            // ignore
-        } else if (size < 1024 * 1024) {
-            value = value / 1024;
-            unit = "KiB";
-        } else if (size < 1024L * 1024 * 1024) {
-            value = value / (1024 * 1024);
-            unit = "MiB";
-        } else {
-            value = value / (1024L * 1024 * 1024);
-            unit = "GiB";
+        int unitIndex = 0;
+
+        // move to next until whilst >= 1024
+        while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024.0;
+            unitIndex++;
         }
 
-        return String.format("%.3g %s", value, unit); // 3sf
+        return String.format("%.3g %s", value, units[unitIndex]); // 3sf
+    }
+
+    public static String getFileSize(double size) {
+        double value = size;
+        String[] units = {"B", "KiB", "MiB", "GiB", "TiB", "PiB"};
+        int unitIndex = 0;
+
+        // move to next until whilst >= 1024
+        while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024.0;
+            unitIndex++;
+        }
+
+        return String.format("%.3g %s", value, units[unitIndex]);
     }
 
     public static String getFileNameWithTime(String fileName) {

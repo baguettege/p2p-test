@@ -33,4 +33,15 @@ public class MainUtil {
     public static boolean isPort(int port) {
         return port >= 0 && port <= 65535;
     }
+
+    public static String cmdIndent(String output) {
+        String indent = " ".repeat(11); // 11 is the # of spaces used by the time in console logs
+        String[] lines = output.split("\n");
+
+        for (int i = 1; i < lines.length; i++) {
+            lines[i] = indent + lines[i];
+        }
+
+        return String.join("\n", lines);
+    }
 }

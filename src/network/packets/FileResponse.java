@@ -4,15 +4,15 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class DataResponse implements Packet {
+public class FileResponse implements Packet {
     // peer's response to a DataStart packet requesting to send a file.
     // when response = true, peer is accepting, visa versa
 
     private boolean response;
 
-    public DataResponse() {}
+    public FileResponse() {}
 
-    public DataResponse(boolean response) { this.response = response; }
+    public FileResponse(boolean response) { this.response = response; }
 
     @Override
     public void write(DataOutputStream out) throws IOException {
@@ -26,7 +26,7 @@ public class DataResponse implements Packet {
 
     @Override
     public String getId() {
-        return "DataResponse";
+        return "FileResponse";
     }
 
     public boolean getResponse() { return response; }

@@ -6,13 +6,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class DataRequest implements Packet {
+public class FileRequest implements Packet {
     private String fileName;
     private long fileSize;
 
-    public DataRequest() {}
+    public FileRequest() {}
 
-    public DataRequest(Path path) throws IOException {
+    public FileRequest(Path path) throws IOException {
         this.fileName = path.getFileName().toString();
         this.fileSize = Files.size(path);
     }
@@ -31,7 +31,7 @@ public class DataRequest implements Packet {
 
     @Override
     public String getId() {
-        return "DataRequest";
+        return "FileRequest";
     }
 
     public String getFileName() { return fileName; }

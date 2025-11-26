@@ -4,8 +4,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class DataEnd implements Packet {
-    public DataEnd() {}
+public class FileCancelUpload implements Packet {
+    public FileCancelUpload() {}
 
     @Override
     public void write(DataOutputStream out) throws IOException {
@@ -17,6 +17,6 @@ public class DataEnd implements Packet {
 
     @Override
     public String getId() {
-        return "DataEnd";
+        return "FileCancelUpload";
     }
 }

@@ -4,8 +4,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class Verify implements Packet {
-    public Verify() {}
+public class FileFooter implements Packet {
+    public FileFooter() {}
 
     @Override
     public void write(DataOutputStream out) throws IOException {
@@ -17,6 +17,6 @@ public class Verify implements Packet {
 
     @Override
     public String getId() {
-        return "Verify";
+        return "FileFooter";
     }
 }
