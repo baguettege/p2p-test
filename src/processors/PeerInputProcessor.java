@@ -31,23 +31,11 @@ public class PeerInputProcessor implements InputProcessor {
         currentCmd = input;
 
         String arg0 = args[0];
-        if (!peer.connectionVerifier().isPeerAuthorized()) {
-            if (peer.connectionVerifier().isAuthorized() && arg0.equals("auth")) { // when this is outbound connection
-                log("Peer must authorize the connection on their side");
-                return;
-            }
-
-            if (!limitedCommands.contains(arg0)) {
-                log("Command is unavailable when connection is unauthorized");
-                return; // dont allow other commands when peer hasnt authorized the connection
-            }
-        }
 
         switch (arg0) {
             case "ping" -> ping();
             case "cmd" -> cmd();
             case "msg" -> message(args);
-            case "auth" -> auth(args);
             case "exit" -> peer.close();
             case "file" -> file(args);
             default -> invalidCommand();
@@ -61,7 +49,6 @@ public class PeerInputProcessor implements InputProcessor {
             CMDs:
             cmd - command list
             msg [text] - send message to peer
-            auth [accept/decline] - authenticate inbound connection
             ping - ping peer
             file [accept/decline/upload]
                  [cancel upload/download] - file transfer
@@ -83,19 +70,6 @@ public class PeerInputProcessor implements InputProcessor {
     private void ping() {
         log("Pinging peer...");
         peer.writePacket(new Ping());
-    }
-
-    private void auth(String[] args) {
-        if (args.length != 2) {
-            invalidCommand();
-            return;
-        }
-
-        switch (args[1]) {
-            case "accept" -> peer.connectionVerifier().authorize();
-            case "decline" -> peer.connectionVerifier().denyAuthorization();
-            default -> invalidCommand();
-        }
     }
 
     private void file(String[] args) {

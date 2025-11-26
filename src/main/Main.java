@@ -28,8 +28,6 @@ public class Main {
 
     // opens a server socket which waits for connections from other peers
     // once a connection is made, new Connection obj is created
-    // other peer must send an Auth packet within 5s otherwise connection will be rejected
-    // waits for Auth packet from peer for 2 way auth
     public static void acceptInbound(int port) {
         if (!MainUtil.isPort(port)) return;
 

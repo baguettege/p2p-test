@@ -21,17 +21,9 @@ public class PacketProcessor {
 
         //log("PACKET ID: " + id); //debug
 
-        boolean isAccepted = peer.connectionVerifier().isAccepted();
-        boolean isAuthorized = peer.connectionVerifier().isPeerAuthorized();
-
-        if (!isAccepted && !id.equals("Accept")) return; // before auth -> only accept packets allowed
-        if (isAccepted && !isAuthorized && !id.equals("Auth")) return; // before auth but accepted -> only accept auth packets
-
         switch (id) {
             case "Ping" -> ping((Ping) packet);
             case "Message" -> message((Message) packet);
-            case "Accept" -> peer.connectionVerifier().accept();
-            case "Auth" -> auth((Auth) packet);
             case "KeepAlive" -> {} // do nothing; is keeping socket alive
             case "FileData" -> peer.fileProcessor().processData((FileData) packet);
             case "FileHeader" -> peer.fileProcessor().processHeader((FileHeader) packet);
@@ -50,18 +42,6 @@ public class PacketProcessor {
 
     private void message(Message packet) {
         log("MSG - " + packet.getText());
-    }
-
-    private void auth(Auth packet) {
-        String status = packet.getStatus();
-
-        if (!status.isEmpty()) {
-            log("Auth: " + status);
-        }
-
-        if (status.equals("Connection authorized")) {
-            peer.connectionVerifier().authorize();
-        }
     }
 
     private void ping(Ping packet) {

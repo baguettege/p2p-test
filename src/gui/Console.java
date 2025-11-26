@@ -26,7 +26,6 @@ public class Console {
 
         if (peer != null) {
             inputProcessor = new PeerInputProcessor(peer);
-            log("Waiting for connection to be authorized...");
         } else {
             inputProcessor = new MainInputProcessor();
         }

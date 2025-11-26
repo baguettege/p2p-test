@@ -8,8 +8,6 @@ public class PacketFactory {
         return switch (id) {
             case "Ping" -> new Ping();
             case "Message" -> new Message();
-            case "Accept" -> new Accept();
-            case "Auth" -> new Auth();
             case "KeepAlive" -> new KeepAlive();
             case "FileData" -> new FileData();
             case "FileHeader" -> new FileHeader();

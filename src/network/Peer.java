@@ -1,7 +1,6 @@
 package network;
 
 import gui.Console;
-import main.ConnectionVerifier;
 import processors.FileProcessor;
 import main.Main;
 import processors.PacketProcessor;
@@ -13,19 +12,16 @@ import java.net.Socket;
 
 public class Peer implements Runnable {
     private final Socket socket;
-    private Console console;
+    private final Console console;
 
     private PacketProcessor packetProcessor;
     private FileProcessor fileProcessor;
-    private ConnectionVerifier connectionVerifier;
 
     public final String ip;
     private boolean isDisconnecting;
 
     private DataOutputStream out;
     private DataInputStream in;
-
-    private final int VERIFY_TIMEOUT_MILLIS = 5000;
 
     public void log(String logText) {
         if (console != null) console.log(logText);
@@ -36,7 +32,7 @@ public class Peer implements Runnable {
         ip = socket.getInetAddress().getHostAddress();
         initConnection();
 
-        writePacket(new Accept());
+        console = Main.window().createConsole(ip, this);
     }
 
     public Peer(Socket socket, int port) {
@@ -44,9 +40,7 @@ public class Peer implements Runnable {
         ip = socket.getInetAddress().getHostAddress() + ":" + port;
         initConnection();
 
-        // auto authenticate as this connection was an outbound request
-        writePacket(new Accept());
-        connectionVerifier.autoAuth();
+        console = Main.window().createConsole(ip, this);
     }
 
     private void initConnection() {
@@ -59,7 +53,6 @@ public class Peer implements Runnable {
 
         packetProcessor = new PacketProcessor(this);
         fileProcessor = new FileProcessor(this);
-        connectionVerifier = new ConnectionVerifier(this);
     }
 
     // listen to incoming packets from peer
@@ -67,17 +60,6 @@ public class Peer implements Runnable {
     // otherwise terminate the connection
     @Override
     public void run() {
-        new Thread(() -> {
-            try {
-                Thread.sleep(VERIFY_TIMEOUT_MILLIS);
-                if (!connectionVerifier.isAccepted()) silentClose();
-
-            } catch (InterruptedException e) {
-                log("Thread interrupted whilst waiting for connection verification: " + e.getMessage());
-            }
-
-        }).start();
-
         try {
             while (true) {
                 String id = in.readUTF();
@@ -98,14 +80,7 @@ public class Peer implements Runnable {
         }
     }
 
-    public void setConsole(Console console) {
-        if (this.console != null) return;
-        this.console = console;
-    }
-
     public FileProcessor fileProcessor() { return fileProcessor; }
-    public ConnectionVerifier connectionVerifier() { return connectionVerifier; }
-    public String ip() { return ip; }
 
     // send data to the peer
     public synchronized void writePacket(Packet packet) {
