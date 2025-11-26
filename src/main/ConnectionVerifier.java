@@ -64,6 +64,8 @@ public class ConnectionVerifier {
         }).start();
     }
 
+    //new branch
+
     private boolean peerAuthorized = false;
 
     public void authorize() {
