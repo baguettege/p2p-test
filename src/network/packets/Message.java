@@ -25,7 +25,7 @@ public class Message implements Packet {
 
     @Override
     public String getId() {
-        return "Message";
+        return this.getClass().getSimpleName();
     }
 
     public String getText() { return text; }

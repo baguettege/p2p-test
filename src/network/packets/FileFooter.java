@@ -17,6 +17,6 @@ public class FileFooter implements Packet {
 
     @Override
     public String getId() {
-        return "FileFooter";
+        return this.getClass().getSimpleName();
     }
 }

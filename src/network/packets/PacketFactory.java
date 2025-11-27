@@ -16,6 +16,8 @@ public class PacketFactory {
             case "FileRequest" -> new FileRequest();
             case "FileCancelUpload" -> new FileCancelUpload();
             case "FileCancelDownload" -> new FileCancelDownload();
+            case "DHInitialExchange" -> new DHInitialExchange();
+            case "KeyExchange" -> new KeyExchange();
             default -> null;
         };
     }

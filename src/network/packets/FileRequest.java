@@ -31,7 +31,7 @@ public class FileRequest implements Packet {
 
     @Override
     public String getId() {
-        return "FileRequest";
+        return this.getClass().getSimpleName();
     }
 
     public String getFileName() { return fileName; }

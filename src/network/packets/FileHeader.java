@@ -35,7 +35,7 @@ public class FileHeader implements Packet {
 
     @Override
     public String getId() {
-        return "FileHeader";
+        return this.getClass().getSimpleName();
     }
 
     public String getFileName() { return fileName; }

@@ -25,6 +25,6 @@ public class Template implements Packet {
 
     @Override
     public String getId() {
-        return "Template";
+        return this.getClass().getSimpleName();
     }
 }

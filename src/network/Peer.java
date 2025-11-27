@@ -1,6 +1,7 @@
 package network;
 
 import gui.Console;
+import main.EncryptionHandler;
 import processors.FileProcessor;
 import main.Main;
 import processors.PacketProcessor;
@@ -8,14 +9,16 @@ import network.packets.*;
 
 import javax.swing.*;
 import java.io.*;
+import java.math.BigInteger;
 import java.net.Socket;
 
 public class Peer implements Runnable {
     private final Socket socket;
-    private final Console console;
+    private Console console;
 
     private PacketProcessor packetProcessor;
     private FileProcessor fileProcessor;
+    private EncryptionHandler encryptionHandler;
 
     public final String ip;
     private boolean isDisconnecting;
@@ -27,20 +30,22 @@ public class Peer implements Runnable {
         if (console != null) console.log(logText);
     }
 
-    public Peer(Socket socket) {
+    public Peer(Socket socket) { // inbound connection (server)
         this.socket = socket;
         ip = socket.getInetAddress().getHostAddress();
         initConnection();
 
-        console = Main.window().createConsole(ip, this);
+        encryptionHandler.initServerSide();
     }
 
-    public Peer(Socket socket, int port) {
+    public Peer(Socket socket, int port) { // outbound connection (client)
         this.socket = socket;
         ip = socket.getInetAddress().getHostAddress() + ":" + port;
         initConnection();
+    }
 
-        console = Main.window().createConsole(ip, this);
+    public EncryptionHandler encryptionHandler() {
+        return encryptionHandler;
     }
 
     private void initConnection() {
@@ -53,6 +58,8 @@ public class Peer implements Runnable {
 
         packetProcessor = new PacketProcessor(this);
         fileProcessor = new FileProcessor(this);
+        console = Main.window().createConsole(ip, this);
+        encryptionHandler = new EncryptionHandler(this);
     }
 
     // listen to incoming packets from peer

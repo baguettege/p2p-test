@@ -34,7 +34,7 @@ public class FileData implements Packet {
 
     @Override
     public String getId() {
-        return "FileData";
+        return this.getClass().getSimpleName();
     }
 
     public int getIndex() { return index; }

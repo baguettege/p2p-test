@@ -26,7 +26,7 @@ public class FileResponse implements Packet {
 
     @Override
     public String getId() {
-        return "FileResponse";
+        return this.getClass().getSimpleName();
     }
 
     public boolean getResponse() { return response; }

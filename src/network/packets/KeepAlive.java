@@ -17,6 +17,6 @@ public class KeepAlive implements Packet {
 
     @Override
     public String getId() {
-        return "KeepAlive";
+        return this.getClass().getSimpleName();
     }
 }

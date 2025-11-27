@@ -17,6 +17,6 @@ public class FileCancelDownload implements Packet {
 
     @Override
     public String getId() {
-        return "FileCancelDownload";
+        return this.getClass().getSimpleName();
     }
 }

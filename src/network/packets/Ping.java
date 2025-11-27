@@ -27,7 +27,7 @@ public class Ping implements Packet {
 
     @Override
     public String getId() {
-        return "Ping";
+        return this.getClass().getSimpleName();
     }
 
     public long getTimestamp() {

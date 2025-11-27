@@ -3,6 +3,8 @@ package processors;
 import network.Peer;
 import network.packets.*;
 
+import java.security.Key;
+
 public class PacketProcessor {
     private final Peer peer;
 
@@ -32,6 +34,8 @@ public class PacketProcessor {
             case "FileRequest" -> peer.fileProcessor().processRequest((FileRequest) packet);
             case "FileCancelUpload" -> peer.fileProcessor().cancelDownload(true); // we reverse these 2 as the packet means the peer is cancelling upload
             case "FileCancelDownload" -> peer.fileProcessor().cancelUpload(true); // so we must therefore cancel the download
+            case "DHInitialExchange" -> peer.encryptionHandler().handleInitialExchange((DHInitialExchange) packet);
+            case "KeyExchange" -> peer.encryptionHandler().handleKeyExchange((KeyExchange) packet);
             default -> unknownPacket(packet);
         }
     }
