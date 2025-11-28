@@ -36,7 +36,7 @@ public class PeerInputProcessor implements InputProcessor {
             case "ping" -> ping();
             case "cmd" -> cmd();
             case "msg" -> message(args);
-            case "exit" -> peer.close();
+            case "exit" -> peer.disconnect();
             case "file" -> file(args);
             default -> invalidCommand();
         }

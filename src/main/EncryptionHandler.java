@@ -4,16 +4,20 @@ import network.Peer;
 import network.packets.DHInitialExchange;
 import network.packets.KeyExchange;
 
-import javax.crypto.KeyAgreement;
+import javax.crypto.*;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.security.*;
+import java.util.Arrays;
 
 public class EncryptionHandler {
     private final Peer peer;
     private KeyPair keyPair;
-    private byte[] aesKey;
+    private SecretKeySpec keySpec;
 
     // server peer gens keypair + p & g, sends p & g + public key to client peer
     // client peer gens keypair with given p & g, generates shared secret with server's public key, sends public key to server
@@ -26,6 +30,26 @@ public class EncryptionHandler {
 
     private void log(String logText) {
         peer.log(logText);
+    }
+
+    public boolean encryptionReady() { return keySpec != null; }
+
+    public void initServerSide() {
+        genKeyPair();
+    }
+
+    public void handleInitialExchange(DHInitialExchange packet) {
+        PublicKey peerPublicKey = packet.getPublicKey();
+        BigInteger p = packet.getP();
+        BigInteger g = packet.getG();
+
+        genKeyPair(p, g);
+        genSharedSecret(peerPublicKey);
+    }
+
+    public void handleKeyExchange(KeyExchange packet) {
+        PublicKey peerPublicKey = packet.getPublicKey();
+        genSharedSecret(peerPublicKey);
     }
 
     private void genKeyPair() {
@@ -48,7 +72,7 @@ public class EncryptionHandler {
 
             peer.writePacket(new DHInitialExchange(keyPair.getPublic(), p, g));
 
-            log("DH - Generated key pair with keysize 4096");
+            log("DH - Generated key pair with keysize 3072");
 
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
@@ -77,8 +101,8 @@ public class EncryptionHandler {
     }
 
     private void genSharedSecret(PublicKey peerPublicKey) {
-        if (aesKey != null) {
-            log("DH WARN - genSharedSecret(PublicKey peerPublicKey) was called when aesKey != null!");
+        if (keySpec != null) {
+            log("DH WARN - genSharedSecret(PublicKey peerPublicKey) was called when keySpec != null!");
             return;
         }
 
@@ -95,31 +119,66 @@ public class EncryptionHandler {
 
             // convert raw bytes into usable aes key
             MessageDigest sha = MessageDigest.getInstance("SHA-256"); // HKDF is better, but not required
-            aesKey = sha.digest(sharedSecret);
+            byte[] aesKey = sha.digest(sharedSecret);
+
+            keySpec = new SecretKeySpec(aesKey, "AES");
 
             log("DH - AES key generated");
-            log("DH DEBUG - AES KEY: " + java.util.Base64.getEncoder().encodeToString(aesKey)); // do not log this in production
+            log("Encryption - Using AES-256-GCM/128");
+            //log("DH DEBUG - AES KEY: " + java.util.Base64.getEncoder().encodeToString(aesKey)); // do not log this in production
 
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void initServerSide() {
-        genKeyPair();
+    public byte[] encrypt(byte[] plainText) {
+        if (keySpec == null) {
+            log("encrypt(byte[] plainText) called when keySpec == null!");
+            return null;
+        }
+
+        // create 12 byte iv (must be unique to all messages)
+        byte[] iv = new byte[12];
+        SecureRandom random = new SecureRandom(); // cryptographically strong rng
+        random.nextBytes(iv); // fills array with 12 random bytes
+
+        try {
+            // create gcm params & cipher
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec, gcmSpec);
+            byte[] cipherText = cipher.doFinal(plainText);
+
+            // create array with 1st 12 bytes as iv, rest as the cipher text
+            ByteBuffer buffer = ByteBuffer.allocate(iv.length + cipherText.length);
+            buffer.put(iv);
+            buffer.put(cipherText);
+            return buffer.array();
+
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public void handleInitialExchange(DHInitialExchange packet) {
-        PublicKey peerPublicKey = packet.getPublicKey();
-        BigInteger p = packet.getP();
-        BigInteger g = packet.getG();
+    public byte[] decrypt(byte[] cipherText) {
+        if (keySpec == null) {
+            log("decrypt(byte[] cipherText) called when keySpec == null!");
+            return null;
+        }
 
-        genKeyPair(p, g);
-        genSharedSecret(peerPublicKey);
-    }
+        byte[] iv = Arrays.copyOfRange(cipherText, 0, 12);
+        cipherText = Arrays.copyOfRange(cipherText, 12, cipherText.length);
 
-    public void handleKeyExchange(KeyExchange packet) {
-        PublicKey peerPublicKey = packet.getPublicKey();
-        genSharedSecret(peerPublicKey);
+        try {
+            // create gcm params & cipher
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmSpec);
+            return cipher.doFinal(cipherText);
+
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

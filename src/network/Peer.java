@@ -7,9 +7,7 @@ import main.Main;
 import processors.PacketProcessor;
 import network.packets.*;
 
-import javax.swing.*;
 import java.io.*;
-import java.math.BigInteger;
 import java.net.Socket;
 
 public class Peer implements Runnable {
@@ -63,27 +61,49 @@ public class Peer implements Runnable {
     }
 
     // listen to incoming packets from peer
-    // wait 5s for an Accept packet to be sent by the peer
-    // otherwise terminate the connection
     @Override
     public void run() {
         try {
             while (true) {
-                String id = in.readUTF();
-                Packet packet = PacketFactory.create(id);
+                if (encryptionHandler.encryptionReady()) {
+                    int length = in.readInt();
+                    byte[] cipherText = new byte[length];
+                    in.readFully(cipherText);
 
-                if (packet == null) {
-                    log("Packet received was null: " + id);
-                    Main.logMain("Packet received was null: " + id);
-                    continue;
+                    byte[] plainText = encryptionHandler.decrypt(cipherText);
+
+                    ByteArrayInputStream bais = new ByteArrayInputStream(plainText);
+                    DataInputStream dis = new DataInputStream(bais);
+
+                    String id = dis.readUTF();
+                    Packet packet = PacketFactory.create(id);
+
+                    if (packet == null) {
+                        log("Packet with unknown id received: " + id);
+                        continue;
+                    }
+
+                    packet.read(dis);
+                    packetProcessor.handle(packet);
+
+                } else {
+                    log("DEBUG WARN - Reading an unencrypted packet");
+                    String id = in.readUTF();
+                    Packet packet = PacketFactory.create(id);
+
+                    if (packet == null) {
+                        log("Packet with unknown id received: " + id);
+                        continue;
+                    }
+
+                    packet.read(in);
+                    packetProcessor.handle(packet);
                 }
-
-                packet.read(in);
-                packetProcessor.handle(packet);
             }
-        } catch (IOException _) {}
-        finally {
-            close();
+
+        } catch (IOException _) {
+        } finally {
+            disconnect();
         }
     }
 
@@ -94,37 +114,35 @@ public class Peer implements Runnable {
         if (isDisconnecting) return;
 
         try {
-            out.writeUTF(packet.getId());
-            packet.write(out);
-            out.flush();
+            if (encryptionHandler.encryptionReady()) {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                DataOutputStream dos = new DataOutputStream(baos);
+
+                dos.writeUTF(packet.getId());
+                packet.write(dos);
+                dos.flush();
+
+                byte[] plainText = baos.toByteArray();
+                byte[] cipherText = encryptionHandler.encrypt(plainText);
+
+                out.writeInt(cipherText.length);
+                out.write(cipherText);
+                out.flush();
+
+            } else {
+                log("DEBUG WARN - Sending an unencrypted packet");
+                out.writeUTF(packet.getId());
+                packet.write(out);
+                out.flush();
+            }
+
         } catch (IOException e) {
             log("Error when writing packet: " + e.getMessage());
         }
     }
 
-    // disconnect the peer without logging
-    // used to avoid console spam from port scanners
-    public synchronized void silentClose() {
-        if (isDisconnecting) return;
-        isDisconnecting = true;
-
-        //log("Silently closing peer"); //debug
-
-        try {
-            if (!socket.isClosed()) {
-                socket.close();
-            }
-
-        } catch (IOException e) {
-            log("Error when closing connection: " + e.getMessage());
-            Main.logMain("Error when closing connection: " + e.getMessage());
-        }
-
-        if (console != null) console.close();
-    }
-
     // disconnect the peer with logging
-    public synchronized void close() {
+    public synchronized void disconnect() {
         if (isDisconnecting) return;
         isDisconnecting = true;
 
