@@ -1,27 +1,21 @@
-package processors;
+package communication;
 
 import network.Peer;
 import network.packets.*;
 
-import java.security.Key;
-
-public class PacketProcessor {
+public class PacketDispatcher {
     private final Peer peer;
 
     // take a packet received by a peer and process it
 
-    public PacketProcessor(Peer conn) {
-        peer = conn;
-    }
+    public PacketDispatcher(Peer peer) { this.peer = peer; }
 
-    private void log(String logText) {
-        peer.log(logText);
-    }
+    private void log(String logText) { peer.log("PACKET - " + logText); }
+
+    private void unknownPacket(Packet packet) { log("Unknown packet received: " + packet.getId()); }
 
     public void handle(Packet packet) {
         String id = packet.getId();
-
-        //log("PACKET ID: " + id); //debug
 
         switch (id) {
             case "Ping" -> ping((Ping) packet);
@@ -35,13 +29,10 @@ public class PacketProcessor {
             case "FileCancelUpload" -> peer.fileProcessor().cancelDownload(true); // we reverse these 2 as the packet means the peer is cancelling upload
             case "FileCancelDownload" -> peer.fileProcessor().cancelUpload(true); // so we must therefore cancel the download
             case "DHInitialExchange" -> peer.encryptionHandler().handleInitialExchange((DHInitialExchange) packet);
-            case "KeyExchange" -> peer.encryptionHandler().handleKeyExchange((KeyExchange) packet);
+            case "DHKeyExchange" -> peer.encryptionHandler().handleKeyExchange((DHKeyExchange) packet);
+            case "Transcript" -> peer.encryptionHandler().handleTranscript((Transcript) packet);
             default -> unknownPacket(packet);
         }
-    }
-
-    private void unknownPacket(Packet packet) {
-        log("Unknown packet received: " + packet.getId() + " | " + packet);
     }
 
     private void message(Message packet) {

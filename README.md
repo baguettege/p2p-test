@@ -1,40 +1,81 @@
-p2p-test
+## p2p testing in java 25
 
-p2p testing in java 25
-- small peer-to-peer program
+v1.4
+
+small peer-to-peer program
 
 all saved data is stored in Documents/p2p-test
 
+authentication keys are produced when on first run of the program, or when you run the command 'key reset'
 
-update log:
+do not share your private key file, located in Documents/p2p-test/keys/private.key, if you somehow do run the command 'key reset'
 
-v1 - basic connections, message sharing
+in order to connect to a peer, you must trust their public key via running the command 'key add'
 
-v1.1 - verification, authentication, commenting, additional packets
+and selecting their public.key file, that they have sent you (found in Documents/p2p-test/keys/public.key)
 
-v1.2 - file sending
-- file sending is primitive
-- it loads the entire file into ram at once
-- so can crash the program if the file is too large
-- there is no accept/declining file sending, can be unsafe if connected to untrusted peer
+## commands
 
-v1.3 - improved file sending
-- data is sent in small packets as a stream instead of all at once, should prevent crashing
-- no accept/declining file sending in place yet
+````
+main console:
 
-v1.35 - accept/decline file transfer, very spaghetti code
-- each file transfer has to be accepted/declined
-- no automatic cooldown
-- code is very spaghetti
-- working on cleaning it up
+- cmd
+    lists all available commands
 
-v1.4 major code cleanup & file transfer improvements
-- peer auth, accepting & file transfer moved to their own classes (no more boolean spam)
-- renaming of classes for clarity
-- logs make more sense
-- commands grouped up/more straightforward to use
-- console cmd processors given respective classes for simpler use
-- changed .log writing to latest.log to not spam logs folder
-- added ability to cancel file transfers & requests
-- some commands are now blocked before authorization
-- gui is now in dark mode
+- connect [ip:port]
+    attempts to connect to a peer with the given ip:port
+
+- port open [port number]
+    opens a ServerSocket which allows for other peers to make connects to you
+    
+- port close
+    closes the open port by closing the ServerSocket, disabling inbound connections
+    
+- key add
+    allows you to select a peer's public .key file to trust connections to
+    
+- key remove
+    allows you to remove a .key file from your trusted public keys
+    
+- key reset
+    resets your own private and public keys
+    will require you to re-share your public key so that peers can trust it again
+    
+- exit
+    closes the program
+    
+- debug key [path to public key]|[path to private key]
+    lets you set the public and private keys used for authentication, is mainly for testing
+    e.g. debug key C:\Users\user1\Downloads\public1.key|C:\Users\user1\Downloads\private1.key
+````
+
+````
+peer consoles:
+
+- cmd
+    lists all available commands
+    
+- msg [text]
+    send a message to the peer
+    
+- ping
+    ping the peer, they will echo back, will print the latency (time taken) to echo
+    
+- file upload
+    select a file to send to the peer, they will have to accept this file transfer
+    
+- file accept
+    accept a file transfer request sent by the peer
+    
+- file decline
+    decline a file transfer request sent by the peer
+    
+- file cancel upload
+    cancels uploading a file to the peer
+    
+- file cancel download
+    cancels downloading a file to the peer
+    
+- disconnect
+    disconnects from the peer
+````

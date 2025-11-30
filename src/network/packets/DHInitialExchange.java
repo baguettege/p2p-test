@@ -11,64 +11,98 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
 public class DHInitialExchange implements Packet {
-    private PublicKey publicKey;
+    private PublicKey publicDHKey;
+    private PublicKey publicAuthKey;
     private BigInteger p;
     private BigInteger g;
+    private byte[] nonce;
 
     public DHInitialExchange() {}
 
-    public DHInitialExchange(PublicKey publicKey, BigInteger p, BigInteger g) {
-        this.publicKey = publicKey;
+    public DHInitialExchange(PublicKey publicDHKey, PublicKey publicAuthKey, BigInteger p, BigInteger g, byte[] nonce) {
+        this.publicDHKey = publicDHKey;
+        this.publicAuthKey = publicAuthKey;
         this.p = p;
         this.g = g;
+        this.nonce = nonce;
+    }
+
+    private class WriteHelper {
+        static void writePublicKey(DataOutputStream dos, PublicKey key) throws IOException {
+            byte[] keyBytes = key.getEncoded();
+            dos.writeInt(keyBytes.length);
+            dos.write(keyBytes);
+        }
+
+        static void writeBigInteger(DataOutputStream dos, BigInteger bi) throws IOException {
+            byte[] bytes = bi.toByteArray();
+            dos.writeInt(bytes.length);
+            dos.write(bytes);
+        }
+    }
+
+    private class ReadHelper {
+        static PublicKey readPublicKey(DataInputStream dis, String algorithm) throws IOException {
+            int length = dis.readInt();
+            byte[] keyBytes = new byte[length];
+            dis.readFully(keyBytes);
+
+            // build key
+            try {
+                KeyFactory kf = KeyFactory.getInstance(algorithm);
+                X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+                return kf.generatePublic(spec);
+
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        static BigInteger readBigInteger(DataInputStream dis) throws IOException {
+            int length = dis.readInt();
+            byte[] bytes = new byte[length];
+            dis.readFully(bytes);
+            return new BigInteger(bytes);
+        }
     }
 
     @Override
     public void write(DataOutputStream out) throws IOException {
-        // public key
-        byte[] keyBytes = publicKey.getEncoded();
-        out.writeInt(keyBytes.length);
-        out.write(keyBytes);
+        // public dh key
+        WriteHelper.writePublicKey(out, publicDHKey);
+
+        // public auth key
+        WriteHelper.writePublicKey(out, publicAuthKey);
 
         // p
-        byte[] pBytes = p.toByteArray();
-        out.writeInt(pBytes.length);
-        out.write(pBytes);
+        WriteHelper.writeBigInteger(out, p);
 
         // g
-        byte[] gBytes = g.toByteArray();
-        out.writeInt(gBytes.length);
-        out.write(gBytes);
+        WriteHelper.writeBigInteger(out, g);
+
+        // nonce
+        out.writeInt(nonce.length);
+        out.write(nonce);
     }
 
     @Override
     public void read(DataInputStream in) throws IOException {
-        // public key
-        int length = in.readInt();
-        byte[] keyBytes = new byte[length];
-        in.readFully(keyBytes);
+        // public dh key
+        publicDHKey = ReadHelper.readPublicKey(in, "DH");
 
-        // build PublicKey
-        try {
-            KeyFactory kf = KeyFactory.getInstance("DH");
-            X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-            publicKey = kf.generatePublic(spec);
-
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new RuntimeException(e);
-        }
+        // public auth key
+        publicAuthKey = ReadHelper.readPublicKey(in, "Ed25519");
 
         // p
-        int pLength = in.readInt();
-        byte[] pBytes = new byte[pLength];
-        in.readFully(pBytes);
-        p = new BigInteger(pBytes);
+        p = ReadHelper.readBigInteger(in);
 
         // g
-        int gLength = in.readInt();
-        byte[] gBytes = new byte[gLength];
-        in.readFully(gBytes);
-        g = new BigInteger(gBytes);
+        g = ReadHelper.readBigInteger(in);
+
+        // nonce
+        int nonceLength = in.readInt();
+        nonce = new byte[nonceLength];
+        in.readFully(nonce);
     }
 
     @Override
@@ -76,8 +110,12 @@ public class DHInitialExchange implements Packet {
         return this.getClass().getSimpleName();
     }
 
-    public PublicKey getPublicKey() {
-        return publicKey;
+    public PublicKey getPublicDHKey() {
+        return publicDHKey;
+    }
+
+    public PublicKey getPublicAuthKey() {
+        return publicAuthKey;
     }
 
     public BigInteger getP() {
@@ -87,4 +125,6 @@ public class DHInitialExchange implements Packet {
     public BigInteger getG() {
         return g;
     }
+
+    public byte[] getNonce() { return nonce; }
 }

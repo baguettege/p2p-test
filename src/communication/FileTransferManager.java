@@ -1,4 +1,4 @@
-package processors;
+package communication;
 
 import main.Main;
 import network.Peer;
@@ -9,21 +9,18 @@ import util.MainUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.channels.ClosedChannelException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 
-public class FileProcessor {
+public class FileTransferManager {
     private final Peer peer;
 
-    public FileProcessor(Peer conn) {
+    public FileTransferManager(Peer conn) {
         peer = conn;
     }
 
-    private void log(String logText) {
-        if (peer != null) peer.log(logText);
-    }
+    private void log(String logText) { if (peer != null) peer.log("FILE - " + logText); }
 
     enum SendState {
         IDLE,
@@ -122,7 +119,7 @@ public class FileProcessor {
         try {
             if (fileOutputStream != null) fileOutputStream.close();
             long elapsedSeconds = (long) ((System.currentTimeMillis() - receiveStartTime) / 1000.0);
-            log(MainUtil.cmdIndent("File downloaded successfully: " + fileName + " | " + elapsedSeconds + "s elapsed\nSaved to: " + target));
+            log(MainUtil.cmdIndent("File download complete: " + fileName + " | " + elapsedSeconds + "s elapsed\nSaved to: " + target));
 
             resetReceiveStates();
 
@@ -170,7 +167,7 @@ public class FileProcessor {
         boolean hasRequestedToSend = sendState == SendState.REQUESTED;
 
         if (isAccepting && hasRequestedToSend) {
-            peer.log("Peer accepted file transfer request, transferring...");
+            peer.log("Peer accepted file transfer request; uploading...");
             writeFile();
         } else if (!isAccepting && hasRequestedToSend) {
             peer.log("Peer declined file transfer request");
@@ -211,7 +208,7 @@ public class FileProcessor {
             return;
         }
 
-        selectedFile = Main.window().chooseFile();
+        selectedFile = Main.window().chooseFile(null);
         if (selectedFile == null) {
             log("File upload cancelled");
             return;
@@ -239,7 +236,7 @@ public class FileProcessor {
         sendState = SendState.SENDING;
         long sendStartTime = System.currentTimeMillis();
 
-        new Thread(() -> { // new thread so swing doesnt freeze
+        new Thread(() -> { // new thread so swing doesn't freeze
             try {
                 peer.writePacket(new FileHeader(selectedFile));
 
@@ -279,7 +276,8 @@ public class FileProcessor {
 
                 peer.writePacket(new FileFooter());
 
-                log(MainUtil.cmdIndent("File uploaded successfully: " + selectedFile.getFileName() + "\nFrom: " + selectedFile));
+                long elapsedSeconds = (long) ((System.currentTimeMillis() - sendStartTime) / 1000.0);
+                log(MainUtil.cmdIndent("File upload complete: " + selectedFile.getFileName() + " | " + elapsedSeconds + "s elapsed\nFrom: " + selectedFile));
                 selectedFile = null;
                 sendState = SendState.IDLE;
 
@@ -307,10 +305,8 @@ public class FileProcessor {
         if (!fromPeer) { // will result in an endless loop of packet sending without this flag
             peer.writePacket(new FileCancelUpload());
         } else {
-            log("Peer cancelled download");
+            log("Upload cancelled by peer");
         }
-
-        log("Cancelling upload...");
 
         try {
             if (fileInputStream != null) {
@@ -322,7 +318,7 @@ public class FileProcessor {
 
         selectedFile = null;
         sendState = SendState.IDLE;
-        log("Cancelled upload successfully");
+        log("Cancelled upload");
     }
 
     public void cancelDownload(boolean fromPeer) {
@@ -334,10 +330,8 @@ public class FileProcessor {
         if (!fromPeer) { // will result in an endless loop of packet sending without this flag
             peer.writePacket(new FileCancelDownload());
         } else {
-            log("Peer cancelled upload");
+            log("Download cancelled by peer");
         }
-
-        log("Cancelling download...");
 
         try {
             if (fileOutputStream != null) {
@@ -356,6 +350,6 @@ public class FileProcessor {
         }
 
         resetReceiveStates();
-        log("Cancelled download successfully");
+        log("Cancelled download");
     }
 }

@@ -1,28 +1,22 @@
-package processors;
+package communication;
 
 import network.Peer;
 import network.packets.*;
 import util.MainUtil;
 
 import java.util.Arrays;
-import java.util.List;
 
-public class PeerInputProcessor implements InputProcessor {
+public class PeerCommandController implements CommandController {
     private final Peer peer;
     private String currentCmd;
-    private List<String> limitedCommands = List.of("auth", "exit");
 
     // handles all commands inputted into console
 
-    public PeerInputProcessor(Peer peer) { this.peer = peer; }
+    public PeerCommandController(Peer peer) { this.peer = peer; }
 
-    private void log(String logText) {
-        peer.log(logText);
-    }
+    private void log(String logText) { peer.log("PACKET - " + logText); }
 
-    private void invalidCommand() {
-        log("Invalid command: " + currentCmd);
-    }
+    private void invalidCommand() { log("Invalid command: " + currentCmd); }
 
     public void processInput(String input) {
         String[] args = input.split(" ");
@@ -36,7 +30,7 @@ public class PeerInputProcessor implements InputProcessor {
             case "ping" -> ping();
             case "cmd" -> cmd();
             case "msg" -> message(args);
-            case "exit" -> peer.disconnect();
+            case "disconnect" -> peer.disconnect();
             case "file" -> file(args);
             default -> invalidCommand();
         }
@@ -52,7 +46,7 @@ public class PeerInputProcessor implements InputProcessor {
             ping - ping peer
             file [accept/decline/upload]
                  [cancel upload/download] - file transfer
-            exit - disconnect from peer
+            disconnect - disconnect from peer
             """));
     }
 

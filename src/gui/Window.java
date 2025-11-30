@@ -12,7 +12,7 @@ import java.util.Map;
 public class Window {
     private static JTabbedPane tabs;
     private static Console mainConsole;
-    private static Map<Console, Integer> activeConsoles = new HashMap<>(); // <Console, tabIndex> -> used for removing consoles later
+    private static final Map<Console, Component> activeConsoles = new HashMap<>(); // <Console, tabIndex> -> used for removing consoles later
 
     private static final Color bg = new Color(0x1E1E1E);   // background
     private static final Color fg = new Color(0xCFCFCF);   // text
@@ -31,16 +31,15 @@ public class Window {
         tabs = new JTabbedPane();
         tabs.setBackground(Color.DARK_GRAY);
 
-        frame.add(tabs);
-        frame.setVisible(true);
-    }
-
-    public void createMainConsole() {
-        try { // run on EDT, wont be null when trying to log
+        // create main console
+        try { // run on EDT
             SwingUtilities.invokeAndWait(() -> mainConsole = createConsole("Main"));
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        frame.add(tabs);
+        frame.setVisible(true);
     }
 
     public void logMain(String logText) {
@@ -80,27 +79,36 @@ public class Window {
             mainConsole = newConsole;
         }
 
-        int index = tabs.indexOfComponent(panel);
-        activeConsoles.put(newConsole, index);
+        activeConsoles.put(newConsole, panel);
 
         return newConsole;
     }
 
     // MUST be called with SwingUtilities.invokeAndWait(() -> window.createConsole(peerName));
-    public Console createConsole(String name) {
-        return buildConsole(name, null);
-    }
-
-    public Console createConsole(String name, Peer peer) {
-        return buildConsole(name, peer);
-    }
+    public Console createConsole(String name) { return buildConsole(name, null); }
+    public Console createConsole(String name, Peer peer) { return buildConsole(name, peer); }
 
     public void removeConsole(Console console) {
-        tabs.remove(activeConsoles.get(console));
+        Runnable removeTask = () -> {
+            tabs.remove(activeConsoles.get(console));
+            activeConsoles.remove(console);
+        };
+
+        if (SwingUtilities.isEventDispatchThread()) {
+            removeTask.run();
+        } else {
+            SwingUtilities.invokeLater(removeTask);
+        }
     }
 
-    public Path chooseFile() {
-        JFileChooser chooser = new JFileChooser();
+    public Path chooseFile(Path pth) {
+        JFileChooser chooser;
+        if (pth == null) {
+            chooser = new JFileChooser();
+        } else {
+            chooser = new JFileChooser(pth.toFile());
+        }
+
         int result = chooser.showOpenDialog(null);
 
         if (result == JFileChooser.APPROVE_OPTION) {

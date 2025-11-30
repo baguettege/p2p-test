@@ -1,18 +1,19 @@
-package processors;
+package communication;
 
 import main.Main;
+import network.NetworkManager;
+import util.FileUtil;
 import util.MainUtil;
 
-public class MainInputProcessor implements InputProcessor {
+import java.nio.file.Path;
+import java.util.Arrays;
+
+public class MainCommandController implements CommandController {
     private String currentCmd;
 
-    private void log(String logText) {
-        Main.logMain(logText);
-    }
+    private void log(String logText) { Main.logMain("CMD - " + logText); }
 
-    private void invalidCommand() {
-        log("Invalid command: " + currentCmd);
-    }
+    private void invalidCommand() { log("Invalid command: " + currentCmd); }
 
     public void processInput(String input) {
         String[] args = input.split(" ");
@@ -25,6 +26,8 @@ public class MainInputProcessor implements InputProcessor {
             case "connect" -> connect(args);
             case "port" -> port(args);
             case "exit" -> System.exit(0);
+            case "debug" -> debug(args);
+            case "key" -> key(args);
             default -> invalidCommand();
         }
 
@@ -37,6 +40,8 @@ public class MainInputProcessor implements InputProcessor {
             cmd - command list
             connect [ip:port] - connect to a peer
             port [open/close] [number IF open] - open/close ports
+            key [add/remove] - trusted peer's public keys
+                [reset] - reset public and private keys
             exit - end the program
             """));
     }
@@ -53,7 +58,7 @@ public class MainInputProcessor implements InputProcessor {
             return;
         }
 
-        Main.connect(ipPort);
+        NetworkManager.connect(ipPort);
     }
 
     private void port(String[] args) {
@@ -64,7 +69,7 @@ public class MainInputProcessor implements InputProcessor {
 
         String decision = args[1];
         if (decision.equals("close")) {
-            Main.endInbound();
+            NetworkManager.endInbound();
 
         } else if (decision.equals("open")) {
             if (args.length != 3) {
@@ -84,7 +89,40 @@ public class MainInputProcessor implements InputProcessor {
                 return;
             }
 
-            Main.acceptInbound(port);
+            NetworkManager.acceptInbound(port);
+        } else {
+            invalidCommand();
+        }
+    }
+
+    private void debug(String[] args) {
+        if (args[1].equals("key")) {
+            String paths = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+            String[] keyPaths = paths.split("\\|");
+            FileUtil.debugSetKeys(Path.of(keyPaths[0]), Path.of(keyPaths[1]));
+            log(MainUtil.cmdIndent("DEBUG - Set key paths to: \nPublic key: " + keyPaths[0]) + "\nPrivate key: " + keyPaths[1]);
+
+        } else {
+            invalidCommand();
+        }
+    }
+
+    private void key(String[] args) {
+        if (args.length < 2) {
+            invalidCommand();
+            return;
+        }
+
+        if (args.length == 2) {
+            switch (args[1]) {
+                case "add" -> EncryptionManager.addTrustedKey();
+                case "remove" -> EncryptionManager.removeTrustedKey();
+                case "reset" -> EncryptionManager.resetAuthKeys();
+                default -> invalidCommand();
+            }
+
+        } else {
+            invalidCommand();
         }
     }
 }
